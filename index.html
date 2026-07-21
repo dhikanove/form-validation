@@ -145,6 +145,13 @@
   .min-input-group input{ flex:1.2; }
   .min-input-group select{ flex:1; }
 
+  .action-checks{ display:flex; gap:24px; flex-wrap:wrap; }
+  .check-option{
+    display:flex; align-items:center; gap:8px; font-size:14.5px;
+    font-weight:600; color: var(--navy); cursor:pointer; text-transform:none;
+  }
+  .check-option input{ width:18px; height:18px; accent-color: var(--teal); cursor:pointer; }
+
   .add-rule-btn{
     width:100%;
     background:#fff;
@@ -163,12 +170,12 @@
   .rules-list{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
   .rule-chip{
     background:#fff; border:1.5px solid var(--gray-border); border-radius:12px;
-    padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
   }
-  .rule-chip .chip-text{ font-size:14px; color: var(--navy); line-height:1.5; }
+  .rule-chip .chip-text{ font-size:14px; color: var(--navy); line-height:1.6; }
   .rule-chip .chip-text b{ color: var(--teal-dark); }
   .rule-chip .del-btn{
-    background:none; border:none; color:#c0392b; cursor:pointer; font-size:18px; font-weight:700; line-height:1;
+    background:none; border:none; color:#c0392b; cursor:pointer; font-size:18px; font-weight:700; line-height:1; flex-shrink:0;
   }
 
   .json-preview{ margin-top:20px; }
@@ -392,12 +399,12 @@
 
   <hr class="divider">
 
-  <!-- RULES SECTION (conditional required, depends on field lain) -->
+  <!-- RULES SECTION (conditional show/required, bisa depend ke field lain, termasuk kalkulasi usia lintas 2 field) -->
   <div class="field toggle-row">
     <label class="section-label">Aturan Validasi (Rules)</label>
     <div class="switch" id="rulesSwitch" onclick="toggleRules()"></div>
   </div>
-  <div class="hint">Aktifkan untuk mengatur validasi kondisional field ini terhadap field lain, misalnya wajib diisi hanya jika field lain sudah bernilai tertentu.</div>
+  <div class="hint">Aktifkan untuk mengatur field ini agar tampil dan/atau wajib diisi secara kondisional, tergantung nilai field lain — termasuk kalkulasi usia yang butuh 2 tanggal (mis. Tanggal Lahir & Tanggal Event).</div>
 
   <div class="rules-card" id="rulesCard">
 
@@ -411,7 +418,7 @@
     </div>
 
     <div class="rule-field">
-      <label>Wajib Diisi Ketika</label>
+      <label>Kondisi Pemicu</label>
       <div class="select-wrap">
         <select class="styled" id="condition" onchange="renderMinimumInput()">
           <option value="">Pilih Kondisi</option>
@@ -419,9 +426,38 @@
       </div>
     </div>
 
+    <!-- Muncul hanya untuk kondisi "Berdasarkan Usia": pilih tanggal acuan kedua utk kalkulasi usia -->
+    <div class="rule-field" id="ageRefWrap" style="display:none;">
+      <label>Hitung Usia Berdasarkan</label>
+      <div class="select-wrap">
+        <select class="styled" id="ageRefType"></select>
+      </div>
+      <div id="ageRefExtra" style="margin-top:10px;"></div>
+      <div class="hint">Usia dihitung dari <b>Bergantung pada Field</b> di atas, sampai dengan tanggal acuan ini.</div>
+    </div>
+
+    <!-- Muncul untuk kondisi Berdasarkan Usia / Berdasarkan Nilai -->
+    <div class="rule-field" id="comparatorWrap" style="display:none;">
+      <label id="comparatorLabel">Kondisi Nilai</label>
+      <div class="select-wrap">
+        <select class="styled" id="comparator">
+          <option value="lt">&lt; Di Bawah Minimum</option>
+          <option value="gte">≥ Memenuhi Minimum</option>
+        </select>
+      </div>
+    </div>
+
     <div class="rule-field" id="minimumWrap" style="display:none;">
       <label id="minimumLabel">Minimum</label>
       <div id="minimumInputArea"></div>
+    </div>
+
+    <div class="rule-field">
+      <label>Aksi Ketika Kondisi Terpenuhi</label>
+      <div class="action-checks">
+        <label class="check-option"><input type="checkbox" id="actionShow"> Tampilkan Field Ini</label>
+        <label class="check-option"><input type="checkbox" id="actionRequired"> Wajib Diisi (Required)</label>
+      </div>
     </div>
 
     <button class="add-rule-btn" onclick="addRule()">+ Tambah Rule</button>
@@ -447,28 +483,29 @@ const availableFields = [
   { id: 5, name: "Alamat", type: "text" },
   { id: 6, name: "Tanggal Check-in", type: "date" },
   { id: 7, name: "Tanggal Check-out", type: "date" },
+  { id: 8, name: "Tanggal Event", type: "date" },
 ];
 
 const conditionsByType = {
   date: [
-    { value: "always", label: "Selalu Wajib" },
-    { value: "min_age", label: "Wajib jika Usia Minimum Terpenuhi" },
-    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+    { value: "always", label: "Selalu Terpenuhi" },
+    { value: "min_age", label: "Berdasarkan Usia" },
+    { value: "filled", label: "Field Ini Sudah Diisi" },
   ],
   number: [
-    { value: "always", label: "Selalu Wajib" },
-    { value: "min_value", label: "Wajib jika Nilai Minimum Terpenuhi" },
-    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+    { value: "always", label: "Selalu Terpenuhi" },
+    { value: "min_value", label: "Berdasarkan Nilai" },
+    { value: "filled", label: "Field Ini Sudah Diisi" },
   ],
   text: [
-    { value: "always", label: "Selalu Wajib" },
-    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
-    { value: "equals", label: "Wajib jika Sama Dengan Nilai Tertentu" },
+    { value: "always", label: "Selalu Terpenuhi" },
+    { value: "filled", label: "Field Ini Sudah Diisi" },
+    { value: "equals", label: "Sama Dengan Nilai Tertentu" },
   ],
   dropdown: [
-    { value: "always", label: "Selalu Wajib" },
-    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
-    { value: "equals", label: "Wajib jika Sama Dengan Opsi Tertentu" },
+    { value: "always", label: "Selalu Terpenuhi" },
+    { value: "filled", label: "Field Ini Sudah Diisi" },
+    { value: "equals", label: "Sama Dengan Opsi Tertentu" },
   ],
 };
 
@@ -478,6 +515,13 @@ const dateRefOptions = [
   { value: "today", label: "Hari Ini" },
   { value: "event_date", label: "Tanggal Event" },
   { value: "checkin_date", label: "Tanggal Check-in (Sistem)" },
+  { value: "other_field", label: "Field Tanggal Lain..." },
+  { value: "fixed", label: "Tanggal Tetap (Custom)" },
+];
+
+// referensi utk kalkulasi usia (dihitung dari dependsOn field s.d. referensi ini)
+const ageRefOptions = [
+  { value: "today", label: "Hari Ini" },
   { value: "other_field", label: "Field Tanggal Lain..." },
   { value: "fixed", label: "Tanggal Tetap (Custom)" },
 ];
@@ -637,7 +681,7 @@ function renderMinimumInput(){
     label.textContent = 'Minimum Usia';
     area.innerHTML = `
       <div class="min-input-group">
-        <input type="number" id="minValue" placeholder="cth. 14" min="0">
+        <input type="number" id="minValue" placeholder="cth. 17" min="0">
         <select class="styled" id="minUnit">
           <option value="years">Tahun</option>
           <option value="months">Bulan</option>
@@ -655,6 +699,54 @@ function renderMinimumInput(){
   } else {
     wrap.style.display = 'none';
   }
+
+  const comparatorWrap = document.getElementById('comparatorWrap');
+  document.getElementById('comparatorLabel').textContent = cond === 'min_age' ? 'Kondisi Usia' : 'Kondisi Nilai';
+  comparatorWrap.style.display = (cond === 'min_age' || cond === 'min_value') ? 'block' : 'none';
+
+  const ageRefWrap = document.getElementById('ageRefWrap');
+  if(cond === 'min_age'){
+    ageRefWrap.style.display = 'block';
+    initAgeRefOptions();
+  } else {
+    ageRefWrap.style.display = 'none';
+  }
+}
+
+function initAgeRefOptions(){
+  const sel = document.getElementById('ageRefType');
+  if(!sel.options.length){
+    ageRefOptions.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.onchange = onAgeRefTypeChange;
+  }
+  onAgeRefTypeChange();
+}
+
+function onAgeRefTypeChange(){
+  const type = document.getElementById('ageRefType').value;
+  const extra = document.getElementById('ageRefExtra');
+  extra.innerHTML = '';
+  const depId = document.getElementById('dependsOn').value;
+
+  if(type === 'other_field'){
+    const dateFields = availableFields.filter(f => f.type === 'date' && f.id != depId);
+    const sel = document.createElement('select');
+    sel.className = 'styled';
+    sel.id = 'ageRefFieldSelect';
+    sel.innerHTML = '<option value="">Pilih Field Tanggal</option>' +
+      dateFields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    extra.appendChild(sel);
+  } else if(type === 'fixed'){
+    const inp = document.createElement('input');
+    inp.type = 'date';
+    inp.id = 'ageRefFixedDate';
+    extra.appendChild(inp);
+  }
 }
 
 function addRule(){
@@ -664,12 +756,21 @@ function addRule(){
     alert('Pilih field dan kondisi terlebih dahulu.');
     return;
   }
+
+  const actionShow = document.getElementById('actionShow').checked;
+  const actionRequired = document.getElementById('actionRequired').checked;
+  if(!actionShow && !actionRequired){
+    alert('Pilih minimal satu aksi (Tampilkan dan/atau Wajib Diisi).');
+    return;
+  }
+
   const field = availableFields.find(f => f.id == depId);
   const rule = {
     dependsOn: field.id,
     dependsOnName: field.name,
     dependsOnType: field.type,
     condition: cond,
+    actions: [...(actionShow ? ['show'] : []), ...(actionRequired ? ['required'] : [])],
   };
 
   const minInput = document.getElementById('minValue');
@@ -683,11 +784,32 @@ function addRule(){
     }
   }
 
+  if(cond === 'min_age' || cond === 'min_value'){
+    rule.comparator = document.getElementById('comparator').value;
+  }
+
+  if(cond === 'min_age'){
+    const ageRefType = document.getElementById('ageRefType').value;
+    const ageRef = { type: ageRefType };
+    if(ageRefType === 'other_field'){
+      const sel = document.getElementById('ageRefFieldSelect');
+      const refField = availableFields.find(f => f.id == (sel ? sel.value : null));
+      ageRef.refFieldId = refField ? refField.id : null;
+      ageRef.refFieldName = refField ? refField.name : null;
+    } else if(ageRefType === 'fixed'){
+      const fixedEl = document.getElementById('ageRefFixedDate');
+      ageRef.fixedDate = fixedEl ? fixedEl.value : null;
+    }
+    rule.ageReference = ageRef;
+  }
+
   rules.push(rule);
   renderRulesList();
   updateJsonPreview();
 
   document.getElementById('dependsOn').value = '';
+  document.getElementById('actionShow').checked = false;
+  document.getElementById('actionRequired').checked = false;
   renderConditionOptions();
 }
 
@@ -714,16 +836,30 @@ function renderRulesList(){
 function describeRule(r){
   const condLabel = (conditionsByType[r.dependsOnType] || []).find(c => c.value === r.condition);
   let text = `Bergantung pada <b>${r.dependsOnName}</b> — ${condLabel ? condLabel.label : r.condition}`;
+
+  if(r.comparator){
+    text += r.comparator === 'lt' ? ' (&lt; minimum)' : ' (≥ minimum)';
+  }
   if(r.minimum){
     if(r.minimum.unit){
       const unitLabel = { years: 'Tahun', months: 'Bulan', days: 'Hari' }[r.minimum.unit];
-      text += ` (min. <b>${r.minimum.value} ${unitLabel}</b>)`;
+      text += ` — Minimum <b>${r.minimum.value} ${unitLabel}</b>`;
     } else {
-      text += ` (min. <b>${r.minimum.value}</b>)`;
+      text += ` — Minimum <b>${r.minimum.value}</b>`;
     }
   }
   if(r.matchValue){
-    text += ` (= <b>${r.matchValue}</b>)`;
+    text += ` — Nilai: <b>${r.matchValue}</b>`;
+  }
+  if(r.ageReference){
+    let refText = 'Hari Ini';
+    if(r.ageReference.type === 'other_field') refText = r.ageReference.refFieldName || 'Field Lain';
+    if(r.ageReference.type === 'fixed') refText = r.ageReference.fixedDate || 'Tanggal Tetap';
+    text += ` (usia dihitung s.d. <b>${refText}</b>)`;
+  }
+  if(r.actions && r.actions.length){
+    const actionLabels = r.actions.map(a => a === 'show' ? 'Tampilkan' : 'Wajib Diisi').join(' &amp; ');
+    text += `<br><span style="color:#8792a0;font-size:12.5px;">Aksi: ${actionLabels}</span>`;
   }
   return text;
 }
@@ -736,7 +872,7 @@ function isSameDate(a, b){
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
 
-// Menghitung Date object hasil resolusi ref + offset, dipakai baik untuk JSON output maupun kalender preview
+// Menghitung Date object hasil resolusi ref + offset (untuk kalender preview & JSON output)
 function resolveBoundaryDate(prefix){
   const refEl = document.getElementById(prefix + 'Ref');
   const ref = refEl ? refEl.value : 'none';
@@ -749,7 +885,6 @@ function resolveBoundaryDate(prefix){
     const el = document.getElementById(prefix + 'FixedDate');
     if(el && el.value) base = stripTime(new Date(el.value));
   } else {
-    // event_date, checkin_date, other_field -> pakai nilai simulasi untuk preview
     const el = document.getElementById(prefix + 'SimDate');
     if(el && el.value) base = stripTime(new Date(el.value));
   }
