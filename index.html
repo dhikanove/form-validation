@@ -135,8 +135,6 @@
     display:block; font-size:13px; font-weight:700; color:#5c6b7a;
     text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;
   }
-  .rule-row{ display:flex; gap:12px; }
-  .rule-row > *{ flex:1; }
 
   .type-badge{
     display:inline-block; font-size:12px; font-weight:700; color: var(--teal-dark);
@@ -227,7 +225,39 @@
   .db-offset-row{ display:flex; gap:10px; align-items:center; }
   .db-offset-row select, .db-offset-row input{ flex:1; }
   .db-offset-row .plus-label{ font-size:13px; color:#5c6b7a; white-space:nowrap; flex:0 0 auto; }
-  .db-extra{ margin-top:10px; }
+  .db-extra{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+  .db-extra .mini-label{ font-size:11.5px; color:#8792a0; }
+
+  /* calendar preview */
+  .calendar-widget{
+    background:#fff; border:1.5px solid var(--gray-border); border-radius:12px; padding:14px;
+  }
+  .cal-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px; font-weight:700; color:var(--navy); font-size:14px;
+  }
+  .cal-header button{
+    background:none; border:none; font-size:18px; color:var(--teal-dark);
+    cursor:pointer; padding:2px 12px; border-radius:8px; line-height:1;
+  }
+  .cal-header button:hover{ background:#eef6f7; }
+  .cal-weekdays{
+    display:grid; grid-template-columns:repeat(7,1fr); text-align:center;
+    font-size:11px; font-weight:700; color:#8792a0; margin-bottom:6px;
+  }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-cell{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    font-size:13px; border-radius:8px; cursor:pointer; color:var(--navy);
+  }
+  .cal-cell:hover:not(.disabled){ background:#eef6f7; }
+  .cal-cell.disabled{ color:#c7cdd3; text-decoration:line-through; cursor:not-allowed; background:#f7f8f9; }
+  .cal-cell.today{ border:1.5px solid var(--teal); font-weight:700; }
+  .cal-cell.selected{ background:var(--teal); color:#fff; font-weight:700; }
+  .cal-cell.empty{ visibility:hidden; cursor:default; }
+  .cal-legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11.5px; color:#5c6b7a; }
+  .cal-legend .dot{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+  .selected-label{ margin-top:10px; font-size:12.5px; color:var(--navy); font-weight:600; }
 </style>
 </head>
 <body>
@@ -290,17 +320,17 @@
       <div class="db-block">
         <span class="db-block-label">Tanggal Minimum (Boleh Dipilih Mulai Dari)</span>
         <div class="db-grid">
-          <select class="styled" id="minRef" onchange="onRefChange('min')"></select>
+          <select class="styled" id="minRef"></select>
         </div>
         <div class="db-extra" id="minExtra"></div>
         <div class="db-offset-row" id="minOffsetRow" style="display:none;">
           <span class="plus-label">Selisih</span>
-          <select class="styled" id="minOffsetDir">
+          <select class="styled" id="minOffsetDir" onchange="refreshBoundary()">
             <option value="after">Setelah (+)</option>
             <option value="before">Sebelum (-)</option>
           </select>
-          <input type="number" id="minOffsetVal" placeholder="0" value="0" min="0">
-          <select class="styled" id="minOffsetUnit">
+          <input type="number" id="minOffsetVal" placeholder="0" value="0" min="0" oninput="refreshBoundary()">
+          <select class="styled" id="minOffsetUnit" onchange="refreshBoundary()">
             <option value="days">Hari</option>
             <option value="months">Bulan</option>
             <option value="years">Tahun</option>
@@ -311,24 +341,46 @@
       <div class="db-block">
         <span class="db-block-label">Tanggal Maksimum (Boleh Dipilih Sampai)</span>
         <div class="db-grid">
-          <select class="styled" id="maxRef" onchange="onRefChange('max')"></select>
+          <select class="styled" id="maxRef"></select>
         </div>
         <div class="db-extra" id="maxExtra"></div>
         <div class="db-offset-row" id="maxOffsetRow" style="display:none;">
           <span class="plus-label">Selisih</span>
-          <select class="styled" id="maxOffsetDir">
+          <select class="styled" id="maxOffsetDir" onchange="refreshBoundary()">
             <option value="after">Setelah (+)</option>
             <option value="before">Sebelum (-)</option>
           </select>
-          <input type="number" id="maxOffsetVal" placeholder="0" value="0" min="0">
-          <select class="styled" id="maxOffsetUnit">
+          <input type="number" id="maxOffsetVal" placeholder="0" value="0" min="0" oninput="refreshBoundary()">
+          <select class="styled" id="maxOffsetUnit" onchange="refreshBoundary()">
             <option value="days">Hari</option>
             <option value="months">Bulan</option>
             <option value="years">Tahun</option>
           </select>
         </div>
       </div>
-      <div class="hint">Contoh: field "Tanggal Lahir" → Maksimum = Hari Ini, Selisih -17 Tahun → user tidak bisa pilih tanggal yang membuat usia kurang dari 17 tahun.</div>
+      <div class="hint">Contoh: field "Tanggal Lahir" → Maksimum = Hari Ini, Selisih Sebelum 17 Tahun → user tidak bisa pilih tanggal yang membuat usia kurang dari 17 tahun.</div>
+
+      <!-- LIVE PREVIEW DATE PICKER -->
+      <div class="db-block" style="margin-top:20px;">
+        <span class="db-block-label">Preview Date Picker</span>
+        <div class="calendar-widget" id="calendarWidget">
+          <div class="cal-header">
+            <button type="button" onclick="changeMonth(-1)">‹</button>
+            <span id="calMonthLabel">—</span>
+            <button type="button" onclick="changeMonth(1)">›</button>
+          </div>
+          <div class="cal-weekdays">
+            <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+        <div class="cal-legend">
+          <span><span class="dot" style="background:#fff;border:1.5px solid var(--teal);"></span>Hari ini</span>
+          <span><span class="dot" style="background:var(--teal);"></span>Terpilih</span>
+          <span><span class="dot" style="background:#f7f8f9;border:1px solid #e2e6e9;"></span>Tidak bisa dipilih</span>
+        </div>
+        <div class="selected-label" id="calSelectedLabel">Belum ada tanggal dipilih.</div>
+      </div>
     </div>
   </div>
 
@@ -397,7 +449,6 @@ const availableFields = [
   { id: 7, name: "Tanggal Check-out", type: "date" },
 ];
 
-// kondisi yang tersedia per tipe field yang di-depend (rule kondisional)
 const conditionsByType = {
   date: [
     { value: "always", label: "Selalu Wajib" },
@@ -432,6 +483,9 @@ const dateRefOptions = [
 ];
 
 let rules = [];
+let previewMonth = new Date();
+previewMonth.setDate(1);
+let selectedPreviewDate = null;
 
 function setStatus(status){
   document.getElementById('radio-mandatory').classList.toggle('checked', status === 'mandatory');
@@ -459,6 +513,9 @@ function onJenisInputChange(){
   if(isDate){
     initDateBoundaryRow('min');
     initDateBoundaryRow('max');
+    previewMonth = new Date();
+    previewMonth.setDate(1);
+    selectedPreviewDate = null;
   }
   renderDependsOnOptions();
   updateJsonPreview();
@@ -466,7 +523,7 @@ function onJenisInputChange(){
 
 function initDateBoundaryRow(prefix){
   const sel = document.getElementById(prefix + 'Ref');
-  if(sel.options.length) return; // sudah pernah di-render
+  if(sel.options.length) return;
   dateRefOptions.forEach(o => {
     const opt = document.createElement('option');
     opt.value = o.value;
@@ -474,6 +531,16 @@ function initDateBoundaryRow(prefix){
     sel.appendChild(opt);
   });
   sel.addEventListener('change', () => onRefChange(prefix));
+}
+
+function labeledField(labelText, el){
+  const wrap = document.createElement('div');
+  const lbl = document.createElement('div');
+  lbl.className = 'mini-label';
+  lbl.textContent = labelText;
+  wrap.appendChild(lbl);
+  wrap.appendChild(el);
+  return wrap;
 }
 
 function onRefChange(prefix){
@@ -489,18 +556,37 @@ function onRefChange(prefix){
     sel.id = prefix + 'FieldRef';
     sel.innerHTML = '<option value="">Pilih Field Tanggal</option>' +
       dateFields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
-    sel.onchange = updateJsonPreview;
-    extra.appendChild(sel);
+    sel.onchange = refreshBoundary;
+    extra.appendChild(labeledField('Field yang dijadikan acuan', sel));
+
+    const simInput = document.createElement('input');
+    simInput.type = 'date';
+    simInput.id = prefix + 'SimDate';
+    simInput.oninput = refreshBoundary;
+    extra.appendChild(labeledField('Nilai simulasi field tsb (khusus untuk preview ini)', simInput));
+
   } else if(ref === 'fixed'){
     const inp = document.createElement('input');
     inp.type = 'date';
     inp.id = prefix + 'FixedDate';
-    inp.onchange = updateJsonPreview;
-    extra.appendChild(inp);
+    inp.oninput = refreshBoundary;
+    extra.appendChild(labeledField('Tanggal tetap', inp));
+
+  } else if(ref === 'event_date' || ref === 'checkin_date'){
+    const simInput = document.createElement('input');
+    simInput.type = 'date';
+    simInput.id = prefix + 'SimDate';
+    simInput.oninput = refreshBoundary;
+    extra.appendChild(labeledField('Nilai simulasi data tersebut (khusus untuk preview ini)', simInput));
   }
 
   offsetRow.style.display = (ref === 'none') ? 'none' : 'flex';
+  refreshBoundary();
+}
+
+function refreshBoundary(){
   updateJsonPreview();
+  renderCalendarPreview();
 }
 
 function renderDependsOnOptions(){
@@ -642,6 +728,46 @@ function describeRule(r){
   return text;
 }
 
+function stripTime(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function isSameDate(a, b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+// Menghitung Date object hasil resolusi ref + offset, dipakai baik untuk JSON output maupun kalender preview
+function resolveBoundaryDate(prefix){
+  const refEl = document.getElementById(prefix + 'Ref');
+  const ref = refEl ? refEl.value : 'none';
+  if(!ref || ref === 'none') return null;
+
+  let base = null;
+  if(ref === 'today'){
+    base = stripTime(new Date());
+  } else if(ref === 'fixed'){
+    const el = document.getElementById(prefix + 'FixedDate');
+    if(el && el.value) base = stripTime(new Date(el.value));
+  } else {
+    // event_date, checkin_date, other_field -> pakai nilai simulasi untuk preview
+    const el = document.getElementById(prefix + 'SimDate');
+    if(el && el.value) base = stripTime(new Date(el.value));
+  }
+  if(!base) return null;
+
+  const offsetVal = document.getElementById(prefix + 'OffsetVal');
+  const offsetUnit = document.getElementById(prefix + 'OffsetUnit');
+  const offsetDir = document.getElementById(prefix + 'OffsetDir');
+  if(offsetVal && Number(offsetVal.value)){
+    const sign = offsetDir.value === 'before' ? -1 : 1;
+    const val = Number(offsetVal.value) * sign;
+    if(offsetUnit.value === 'days') base.setDate(base.getDate() + val);
+    else if(offsetUnit.value === 'months') base.setMonth(base.getMonth() + val);
+    else if(offsetUnit.value === 'years') base.setFullYear(base.getFullYear() + val);
+  }
+  return base;
+}
+
 function buildDateBoundary(prefix){
   const isDateField = document.getElementById('jenisInput').value === 'date';
   if(!isDateField) return undefined;
@@ -652,7 +778,7 @@ function buildDateBoundary(prefix){
   const obj = { ref };
   if(ref === 'other_field'){
     const fieldRefEl = document.getElementById(prefix + 'FieldRef');
-    obj.refFieldId = fieldRefEl ? Number(fieldRefEl.value) || null : null;
+    obj.refFieldId = fieldRefEl ? (Number(fieldRefEl.value) || null) : null;
   }
   if(ref === 'fixed'){
     const fixedEl = document.getElementById(prefix + 'FixedDate');
@@ -684,6 +810,68 @@ function updateJsonPreview(){
     };
   }
   document.getElementById('jsonPreview').textContent = JSON.stringify(output, null, 2);
+}
+
+const MONTH_NAMES_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function changeMonth(delta){
+  previewMonth.setMonth(previewMonth.getMonth() + delta);
+  renderCalendarPreview();
+}
+
+function selectPreviewDate(dateObj, cellEl){
+  document.querySelectorAll('#calGrid .cal-cell.selected').forEach(el => el.classList.remove('selected'));
+  cellEl.classList.add('selected');
+  selectedPreviewDate = dateObj;
+  document.getElementById('calSelectedLabel').textContent =
+    'Tanggal terpilih: ' + dateObj.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function renderCalendarPreview(){
+  const isDateField = document.getElementById('jenisInput').value === 'date';
+  if(!isDateField) return;
+
+  const minDate = resolveBoundaryDate('min');
+  const maxDate = resolveBoundaryDate('max');
+
+  document.getElementById('calMonthLabel').textContent =
+    MONTH_NAMES_ID[previewMonth.getMonth()] + ' ' + previewMonth.getFullYear();
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  const year = previewMonth.getFullYear();
+  const month = previewMonth.getMonth();
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = stripTime(new Date());
+
+  for(let i = 0; i < firstDayIndex; i++){
+    const empty = document.createElement('div');
+    empty.className = 'cal-cell empty';
+    grid.appendChild(empty);
+  }
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const cellDate = new Date(year, month, d);
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    cell.textContent = d;
+
+    let disabled = false;
+    if(minDate && cellDate < minDate) disabled = true;
+    if(maxDate && cellDate > maxDate) disabled = true;
+
+    if(disabled){
+      cell.classList.add('disabled');
+    } else {
+      cell.onclick = () => selectPreviewDate(cellDate, cell);
+    }
+    if(isSameDate(cellDate, today)) cell.classList.add('today');
+    if(selectedPreviewDate && isSameDate(cellDate, selectedPreviewDate)) cell.classList.add('selected');
+
+    grid.appendChild(cell);
+  }
 }
 </script>
 </body>
