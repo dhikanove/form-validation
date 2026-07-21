@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Edit Informasi Data Pembeli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal: #4a94a7;
+    --teal-dark: #3d7e8f;
+    --navy: #23324a;
+    --gray-border: #d9dee3;
+    --gray-placeholder: #97a2ad;
+    --gray-bg: #f5f7f8;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    font-family: 'Quicksand', sans-serif;
+    background: #e8ecee;
+    margin: 0;
+    padding: 40px 16px;
+    display:flex;
+    justify-content:center;
+  }
+  .modal{
+    width: 100%;
+    max-width: 680px;
+    background:#fff;
+    border-radius: 20px;
+    padding: 32px 40px 40px;
+    box-shadow: 0 10px 40px rgba(20,30,50,0.12);
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 28px;
+  }
+  .modal-header .left{
+    display:flex;
+    align-items:center;
+    gap: 18px;
+  }
+  .modal-header h1{
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--navy);
+    margin:0;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    color: var(--navy);
+    padding:4px;
+    display:flex;
+  }
+  .icon-btn.close{ color:#9aa4ae; }
+  .field{ margin-bottom: 26px; }
+  .field label.section-label{
+    display:block;
+    font-weight:700;
+    color: var(--navy);
+    margin-bottom: 12px;
+    font-size:16px;
+  }
+  input[type="text"], input[type="number"], input[type="date"], select.styled{
+    width:100%;
+    padding: 14px 16px;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 12px;
+    font-family:'Quicksand',sans-serif;
+    font-size:15px;
+    color: var(--navy);
+    outline:none;
+    background:#fff;
+  }
+  input::placeholder{ color: var(--gray-placeholder); }
+  input:focus, select.styled:focus{ border-color: var(--teal); }
+
+  .radio-group{ display:flex; gap:36px; }
+  .radio-option{ display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+  .radio-option span{ font-weight:600; color: var(--navy); font-size:15px; }
+  .radio-circle{
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .radio-circle.checked{ border-color: var(--teal); }
+  .radio-circle.checked::after{
+    content:''; width:10px; height:10px; border-radius:50%; background:var(--teal);
+  }
+
+  .select-wrap{ position:relative; }
+  select.styled{ appearance:none; cursor:pointer; }
+  .select-wrap::after{
+    content:'▾';
+    position:absolute; right:18px; top:50%; transform:translateY(-50%);
+    color: var(--navy); pointer-events:none; font-size:14px;
+  }
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; }
+  .toggle-row .section-label{ margin-bottom:0; font-weight:500; font-size:17px; color: var(--navy); }
+  .switch{
+    width:46px; height:26px; border-radius:20px; background:#d9dee3;
+    position:relative; cursor:pointer; transition: background .2s; flex-shrink:0;
+  }
+  .switch::after{
+    content:''; position:absolute; top:3px; left:3px; width:20px; height:20px;
+    border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition: left .2s;
+  }
+  .switch.on{ background: var(--teal); }
+  .switch.on::after{ left:23px; }
+
+  .divider{
+    border:none;
+    border-top: 1.5px dashed var(--gray-border);
+    margin: 30px 0 26px;
+  }
+
+  .rules-card{
+    background: var(--gray-bg);
+    border: 1.5px solid var(--gray-border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 16px;
+    display:none;
+  }
+  .rules-card.show{ display:block; }
+
+  .rule-field{ margin-bottom:16px; }
+  .rule-field label{
+    display:block; font-size:13px; font-weight:700; color:#5c6b7a;
+    text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;
+  }
+  .rule-row{ display:flex; gap:12px; }
+  .rule-row > *{ flex:1; }
+
+  .type-badge{
+    display:inline-block; font-size:12px; font-weight:700; color: var(--teal-dark);
+    background: #e3eef1; padding:4px 10px; border-radius:8px; margin-left:8px;
+  }
+
+  .min-input-group{ display:flex; gap:10px; }
+  .min-input-group input{ flex:1.2; }
+  .min-input-group select{ flex:1; }
+
+  .add-rule-btn{
+    width:100%;
+    background:#fff;
+    border: 1.5px dashed var(--teal);
+    color: var(--teal-dark);
+    font-family:'Quicksand',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .add-rule-btn:hover{ background:#eef6f7; }
+
+  .rules-list{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+  .rule-chip{
+    background:#fff; border:1.5px solid var(--gray-border); border-radius:12px;
+    padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .rule-chip .chip-text{ font-size:14px; color: var(--navy); line-height:1.5; }
+  .rule-chip .chip-text b{ color: var(--teal-dark); }
+  .rule-chip .del-btn{
+    background:none; border:none; color:#c0392b; cursor:pointer; font-size:18px; font-weight:700; line-height:1;
+  }
+
+  .json-preview{ margin-top:20px; }
+  .json-preview label{
+    display:block; font-size:13px; font-weight:700; color:#5c6b7a;
+    text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px;
+  }
+  .json-preview pre{
+    background:#1f2937; color:#a5f3d0; font-size:12.5px; line-height:1.6;
+    padding:16px; border-radius:12px; overflow-x:auto; margin:0;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+  }
+
+  .update-btn{
+    width:100%;
+    background: var(--teal);
+    color:#fff;
+    border:none;
+    padding: 16px;
+    border-radius: 12px;
+    font-family:'Quicksand',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    cursor:pointer;
+    margin-top: 30px;
+  }
+  .update-btn:hover{ background: var(--teal-dark); }
+
+  .hint{ font-size:12.5px; color:#8792a0; margin-top:6px; line-height:1.5; }
+
+  /* date boundary section (shows only when Jenis Input = Tanggal) */
+  .date-boundary{
+    background:#fff;
+    border: 1.5px solid var(--gray-border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-top: 14px;
+    display:none;
+  }
+  .date-boundary.show{ display:block; }
+  .date-boundary .sub-title{
+    font-size:14px; font-weight:700; color: var(--navy); margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .date-boundary .sub-title svg{ flex-shrink:0; }
+  .db-block{ margin-bottom: 18px; }
+  .db-block:last-child{ margin-bottom:0; }
+  .db-block-label{
+    font-size:12.5px; font-weight:700; color:#5c6b7a;
+    text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; display:block;
+  }
+  .db-grid{ display:flex; gap:10px; margin-bottom:10px; }
+  .db-grid > *{ flex:1; }
+  .db-offset-row{ display:flex; gap:10px; align-items:center; }
+  .db-offset-row select, .db-offset-row input{ flex:1; }
+  .db-offset-row .plus-label{ font-size:13px; color:#5c6b7a; white-space:nowrap; flex:0 0 auto; }
+  .db-extra{ margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div class="modal">
+  <div class="modal-header">
+    <div class="left">
+      <button class="icon-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1>Edit Informasi Data Pembeli</h1>
+    </div>
+    <button class="icon-btn close">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- Field Name -->
+  <div class="field">
+    <label class="section-label">Field Name</label>
+    <input type="text" id="fieldName" placeholder="Masukkan field name">
+  </div>
+
+  <!-- Status Input -->
+  <div class="field">
+    <label class="section-label">Status Input</label>
+    <div class="radio-group">
+      <div class="radio-option" onclick="setStatus('mandatory')">
+        <div class="radio-circle checked" id="radio-mandatory"></div>
+        <span>Mandatory</span>
+      </div>
+      <div class="radio-option" onclick="setStatus('optional')">
+        <div class="radio-circle" id="radio-optional"></div>
+        <span>Optional</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jenis Input -->
+  <div class="field">
+    <label class="section-label">Jenis Input</label>
+    <div class="select-wrap">
+      <select class="styled" id="jenisInput" onchange="onJenisInputChange()">
+        <option value="">Pilih Jenis Input</option>
+        <option value="text">Text</option>
+        <option value="number">Angka</option>
+        <option value="date">Tanggal</option>
+        <option value="dropdown">Dropdown</option>
+        <option value="checkbox">Checkbox</option>
+      </select>
+    </div>
+
+    <!-- Muncul hanya jika Jenis Input = Tanggal -->
+    <div class="date-boundary" id="dateBoundaryCard">
+      <div class="sub-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="#4a94a7" stroke-width="2"/><path d="M3 9H21" stroke="#4a94a7" stroke-width="2"/><path d="M8 3V6M16 3V6" stroke="#4a94a7" stroke-width="2" stroke-linecap="round"/></svg>
+        Batas Tanggal (Disable Date Picker)
+      </div>
+
+      <div class="db-block">
+        <span class="db-block-label">Tanggal Minimum (Boleh Dipilih Mulai Dari)</span>
+        <div class="db-grid">
+          <select class="styled" id="minRef" onchange="onRefChange('min')"></select>
+        </div>
+        <div class="db-extra" id="minExtra"></div>
+        <div class="db-offset-row" id="minOffsetRow" style="display:none;">
+          <span class="plus-label">Selisih</span>
+          <select class="styled" id="minOffsetDir">
+            <option value="after">Setelah (+)</option>
+            <option value="before">Sebelum (-)</option>
+          </select>
+          <input type="number" id="minOffsetVal" placeholder="0" value="0" min="0">
+          <select class="styled" id="minOffsetUnit">
+            <option value="days">Hari</option>
+            <option value="months">Bulan</option>
+            <option value="years">Tahun</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="db-block">
+        <span class="db-block-label">Tanggal Maksimum (Boleh Dipilih Sampai)</span>
+        <div class="db-grid">
+          <select class="styled" id="maxRef" onchange="onRefChange('max')"></select>
+        </div>
+        <div class="db-extra" id="maxExtra"></div>
+        <div class="db-offset-row" id="maxOffsetRow" style="display:none;">
+          <span class="plus-label">Selisih</span>
+          <select class="styled" id="maxOffsetDir">
+            <option value="after">Setelah (+)</option>
+            <option value="before">Sebelum (-)</option>
+          </select>
+          <input type="number" id="maxOffsetVal" placeholder="0" value="0" min="0">
+          <select class="styled" id="maxOffsetUnit">
+            <option value="days">Hari</option>
+            <option value="months">Bulan</option>
+            <option value="years">Tahun</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint">Contoh: field "Tanggal Lahir" → Maksimum = Hari Ini, Selisih -17 Tahun → user tidak bisa pilih tanggal yang membuat usia kurang dari 17 tahun.</div>
+    </div>
+  </div>
+
+  <!-- Dapat Mengubah Data -->
+  <div class="field toggle-row">
+    <label class="section-label">Dapat Mengubah Data</label>
+    <div class="switch" id="editableSwitch" onclick="toggleSwitch('editableSwitch')"></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- RULES SECTION (conditional required, depends on field lain) -->
+  <div class="field toggle-row">
+    <label class="section-label">Aturan Validasi (Rules)</label>
+    <div class="switch" id="rulesSwitch" onclick="toggleRules()"></div>
+  </div>
+  <div class="hint">Aktifkan untuk mengatur validasi kondisional field ini terhadap field lain, misalnya wajib diisi hanya jika field lain sudah bernilai tertentu.</div>
+
+  <div class="rules-card" id="rulesCard">
+
+    <div class="rule-field">
+      <label>Bergantung pada Field <span id="dependsTypeBadge"></span></label>
+      <div class="select-wrap">
+        <select class="styled" id="dependsOn" onchange="renderConditionOptions()">
+          <option value="">Pilih Field</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="rule-field">
+      <label>Wajib Diisi Ketika</label>
+      <div class="select-wrap">
+        <select class="styled" id="condition" onchange="renderMinimumInput()">
+          <option value="">Pilih Kondisi</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="rule-field" id="minimumWrap" style="display:none;">
+      <label id="minimumLabel">Minimum</label>
+      <div id="minimumInputArea"></div>
+    </div>
+
+    <button class="add-rule-btn" onclick="addRule()">+ Tambah Rule</button>
+
+    <div class="rules-list" id="rulesList"></div>
+  </div>
+
+  <div class="json-preview">
+    <label>Preview rules (jsonb)</label>
+    <pre id="jsonPreview">{}</pre>
+  </div>
+
+  <button class="update-btn">Update Informasi Data Pembeli</button>
+</div>
+
+<script>
+// mock daftar field lain yang sudah ada di form, dengan tipe input masing-masing
+const availableFields = [
+  { id: 1, name: "Tanggal Lahir", type: "date" },
+  { id: 2, name: "Nama Lengkap", type: "text" },
+  { id: 3, name: "Nomor HP", type: "number" },
+  { id: 4, name: "Jenis Kelamin", type: "dropdown" },
+  { id: 5, name: "Alamat", type: "text" },
+  { id: 6, name: "Tanggal Check-in", type: "date" },
+  { id: 7, name: "Tanggal Check-out", type: "date" },
+];
+
+// kondisi yang tersedia per tipe field yang di-depend (rule kondisional)
+const conditionsByType = {
+  date: [
+    { value: "always", label: "Selalu Wajib" },
+    { value: "min_age", label: "Wajib jika Usia Minimum Terpenuhi" },
+    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+  ],
+  number: [
+    { value: "always", label: "Selalu Wajib" },
+    { value: "min_value", label: "Wajib jika Nilai Minimum Terpenuhi" },
+    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+  ],
+  text: [
+    { value: "always", label: "Selalu Wajib" },
+    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+    { value: "equals", label: "Wajib jika Sama Dengan Nilai Tertentu" },
+  ],
+  dropdown: [
+    { value: "always", label: "Selalu Wajib" },
+    { value: "filled", label: "Wajib jika Field Ini Sudah Diisi" },
+    { value: "equals", label: "Wajib jika Sama Dengan Opsi Tertentu" },
+  ],
+};
+
+// referensi anchor tanggal yang tersedia untuk batas min/max date picker
+const dateRefOptions = [
+  { value: "none", label: "Tidak Dibatasi" },
+  { value: "today", label: "Hari Ini" },
+  { value: "event_date", label: "Tanggal Event" },
+  { value: "checkin_date", label: "Tanggal Check-in (Sistem)" },
+  { value: "other_field", label: "Field Tanggal Lain..." },
+  { value: "fixed", label: "Tanggal Tetap (Custom)" },
+];
+
+let rules = [];
+
+function setStatus(status){
+  document.getElementById('radio-mandatory').classList.toggle('checked', status === 'mandatory');
+  document.getElementById('radio-optional').classList.toggle('checked', status === 'optional');
+}
+
+function toggleSwitch(id){
+  document.getElementById(id).classList.toggle('on');
+}
+
+function toggleRules(){
+  const sw = document.getElementById('rulesSwitch');
+  sw.classList.toggle('on');
+  const card = document.getElementById('rulesCard');
+  card.classList.toggle('show', sw.classList.contains('on'));
+  if(sw.classList.contains('on') && document.getElementById('dependsOn').options.length <= 1){
+    renderDependsOnOptions();
+  }
+}
+
+function onJenisInputChange(){
+  const isDate = document.getElementById('jenisInput').value === 'date';
+  const card = document.getElementById('dateBoundaryCard');
+  card.classList.toggle('show', isDate);
+  if(isDate){
+    initDateBoundaryRow('min');
+    initDateBoundaryRow('max');
+  }
+  renderDependsOnOptions();
+  updateJsonPreview();
+}
+
+function initDateBoundaryRow(prefix){
+  const sel = document.getElementById(prefix + 'Ref');
+  if(sel.options.length) return; // sudah pernah di-render
+  dateRefOptions.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.value;
+    opt.textContent = o.label;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => onRefChange(prefix));
+}
+
+function onRefChange(prefix){
+  const ref = document.getElementById(prefix + 'Ref').value;
+  const extra = document.getElementById(prefix + 'Extra');
+  const offsetRow = document.getElementById(prefix + 'OffsetRow');
+  extra.innerHTML = '';
+
+  if(ref === 'other_field'){
+    const dateFields = availableFields.filter(f => f.type === 'date');
+    const sel = document.createElement('select');
+    sel.className = 'styled';
+    sel.id = prefix + 'FieldRef';
+    sel.innerHTML = '<option value="">Pilih Field Tanggal</option>' +
+      dateFields.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    sel.onchange = updateJsonPreview;
+    extra.appendChild(sel);
+  } else if(ref === 'fixed'){
+    const inp = document.createElement('input');
+    inp.type = 'date';
+    inp.id = prefix + 'FixedDate';
+    inp.onchange = updateJsonPreview;
+    extra.appendChild(inp);
+  }
+
+  offsetRow.style.display = (ref === 'none') ? 'none' : 'flex';
+  updateJsonPreview();
+}
+
+function renderDependsOnOptions(){
+  const sel = document.getElementById('dependsOn');
+  sel.innerHTML = '<option value="">Pilih Field</option>';
+  availableFields.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name;
+    sel.appendChild(opt);
+  });
+  document.getElementById('dependsTypeBadge').textContent = '';
+  renderConditionOptions();
+}
+
+function renderConditionOptions(){
+  const depId = document.getElementById('dependsOn').value;
+  const field = availableFields.find(f => f.id == depId);
+  const condSel = document.getElementById('condition');
+  condSel.innerHTML = '<option value="">Pilih Kondisi</option>';
+  document.getElementById('dependsTypeBadge').textContent = '';
+
+  if(field){
+    document.getElementById('dependsTypeBadge').textContent = 'Tipe: ' + typeLabel(field.type);
+    (conditionsByType[field.type] || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.value;
+      opt.textContent = c.label;
+      condSel.appendChild(opt);
+    });
+  }
+  renderMinimumInput();
+}
+
+function typeLabel(type){
+  return { date: 'Tanggal', number: 'Angka', text: 'Text', dropdown: 'Dropdown' }[type] || type;
+}
+
+function renderMinimumInput(){
+  const cond = document.getElementById('condition').value;
+  const wrap = document.getElementById('minimumWrap');
+  const area = document.getElementById('minimumInputArea');
+  const label = document.getElementById('minimumLabel');
+  area.innerHTML = '';
+
+  if(cond === 'min_age'){
+    wrap.style.display = 'block';
+    label.textContent = 'Minimum Usia';
+    area.innerHTML = `
+      <div class="min-input-group">
+        <input type="number" id="minValue" placeholder="cth. 14" min="0">
+        <select class="styled" id="minUnit">
+          <option value="years">Tahun</option>
+          <option value="months">Bulan</option>
+          <option value="days">Hari</option>
+        </select>
+      </div>`;
+  } else if(cond === 'min_value'){
+    wrap.style.display = 'block';
+    label.textContent = 'Nilai Minimum';
+    area.innerHTML = `<input type="number" id="minValue" placeholder="cth. 17">`;
+  } else if(cond === 'equals'){
+    wrap.style.display = 'block';
+    label.textContent = 'Nilai yang Harus Sama';
+    area.innerHTML = `<input type="text" id="minValue" placeholder="Masukkan nilai pembanding">`;
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function addRule(){
+  const depId = document.getElementById('dependsOn').value;
+  const cond = document.getElementById('condition').value;
+  if(!depId || !cond){
+    alert('Pilih field dan kondisi terlebih dahulu.');
+    return;
+  }
+  const field = availableFields.find(f => f.id == depId);
+  const rule = {
+    dependsOn: field.id,
+    dependsOnName: field.name,
+    dependsOnType: field.type,
+    condition: cond,
+  };
+
+  const minInput = document.getElementById('minValue');
+  if(minInput){
+    if(cond === 'min_age'){
+      rule.minimum = { value: Number(minInput.value), unit: document.getElementById('minUnit').value };
+    } else if(cond === 'min_value'){
+      rule.minimum = { value: Number(minInput.value) };
+    } else if(cond === 'equals'){
+      rule.matchValue = minInput.value;
+    }
+  }
+
+  rules.push(rule);
+  renderRulesList();
+  updateJsonPreview();
+
+  document.getElementById('dependsOn').value = '';
+  renderConditionOptions();
+}
+
+function removeRule(index){
+  rules.splice(index, 1);
+  renderRulesList();
+  updateJsonPreview();
+}
+
+function renderRulesList(){
+  const list = document.getElementById('rulesList');
+  list.innerHTML = '';
+  rules.forEach((r, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'rule-chip';
+    chip.innerHTML = `
+      <div class="chip-text">${describeRule(r)}</div>
+      <button class="del-btn" onclick="removeRule(${i})">&times;</button>
+    `;
+    list.appendChild(chip);
+  });
+}
+
+function describeRule(r){
+  const condLabel = (conditionsByType[r.dependsOnType] || []).find(c => c.value === r.condition);
+  let text = `Bergantung pada <b>${r.dependsOnName}</b> — ${condLabel ? condLabel.label : r.condition}`;
+  if(r.minimum){
+    if(r.minimum.unit){
+      const unitLabel = { years: 'Tahun', months: 'Bulan', days: 'Hari' }[r.minimum.unit];
+      text += ` (min. <b>${r.minimum.value} ${unitLabel}</b>)`;
+    } else {
+      text += ` (min. <b>${r.minimum.value}</b>)`;
+    }
+  }
+  if(r.matchValue){
+    text += ` (= <b>${r.matchValue}</b>)`;
+  }
+  return text;
+}
+
+function buildDateBoundary(prefix){
+  const isDateField = document.getElementById('jenisInput').value === 'date';
+  if(!isDateField) return undefined;
+
+  const ref = document.getElementById(prefix + 'Ref') ? document.getElementById(prefix + 'Ref').value : 'none';
+  if(!ref || ref === 'none') return { ref: 'none' };
+
+  const obj = { ref };
+  if(ref === 'other_field'){
+    const fieldRefEl = document.getElementById(prefix + 'FieldRef');
+    obj.refFieldId = fieldRefEl ? Number(fieldRefEl.value) || null : null;
+  }
+  if(ref === 'fixed'){
+    const fixedEl = document.getElementById(prefix + 'FixedDate');
+    obj.fixedDate = fixedEl ? fixedEl.value : null;
+  }
+  const offsetVal = document.getElementById(prefix + 'OffsetVal');
+  const offsetUnit = document.getElementById(prefix + 'OffsetUnit');
+  const offsetDir = document.getElementById(prefix + 'OffsetDir');
+  if(offsetVal){
+    obj.offset = {
+      direction: offsetDir.value,
+      value: Number(offsetVal.value) || 0,
+      unit: offsetUnit.value,
+    };
+  }
+  return obj;
+}
+
+function updateJsonPreview(){
+  const output = {};
+  if(rules.length){
+    output.conditions = rules;
+  }
+  const isDateField = document.getElementById('jenisInput').value === 'date';
+  if(isDateField){
+    output.dateBoundary = {
+      min: buildDateBoundary('min'),
+      max: buildDateBoundary('max'),
+    };
+  }
+  document.getElementById('jsonPreview').textContent = JSON.stringify(output, null, 2);
+}
+</script>
+</body>
+</html>
